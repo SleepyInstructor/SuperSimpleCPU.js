@@ -13,6 +13,7 @@ var webcomputer = new computer({
         element.innerHTML = output;
     }
 });
+//Initial memory
 webcomputer.uploadMemory(["0001000000000001",
                           "0001000000000010",
                           "1111000000000000", 
