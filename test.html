@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Test page</title>
+    <meta charset="UTF-8">
+    <script src="simplecomputer.js" defer></script>
+    <script src="testprogram.js" defer></script>
+</head>
+
+<body>
+    <h1> SSCPU.js</h1>
+    <div id="io" class="io">
+        <label>Input</label>
+        <input id="input" type="number">
+        <label>output</label>
+        <label id="output"></label>
+    </div>
+    <div id="controls" class="controls">
+        <input type="button" value="Execute Next Instruction" onclick="nextInstruction()">
+        <input type="button" value="Reset Computer" onclick="resetComputer()">
+    </div>
+    <div id="registers" class="registers">
+        <label>Current State</label>
+        <label id="state"></label>
+        <br>
+        <label>Registers</label>
+        <br>
+        <label class="reg">PC:</label>
+        <label id="pc" class="regValue"></label>
+        <label class="reg">IR:</label>
+        <label id="ir" class="regValue"></label>
+        <label class="reg">ACC:</label>
+        <label id="acc" class="regValue"></label>
+        <label class="error" id="error"></label>
+    </div>
+    <div id="memory" class="memory"></div>
+    <div id="disassemblywindow">
+        <input type="button" onclick="dissassemble()" value="dissassemble">
+        <input type="button" onclick="assemble()" value="assemble"><br>
+        <textarea id="codeWindow" rows="32" cols="80"></textarea>
+        <div id="log"></div>
+    </div>
+
+
+
+</body>
