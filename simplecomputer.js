@@ -2,7 +2,7 @@
    moz : true
 */
 /*globals
-   class
+   class, leftpad, console
 */
 //Class basic computer 
 function leftPad(size, baseString, padChar) {
@@ -14,7 +14,9 @@ function twosComplementToNumber(encodedString) {
     "use strict";
     var leadingOne = encodedString[0] === '1';
     var newString = leadingOne ?
-        encodedString.split("").map(function(val) {return val === '0' ? '1' : '0'; }).join("") :
+        encodedString.split("").map(function(val) {
+            return val === '0' ? '1' : '0';
+        }).join("") :
         encodedString;
     return leadingOne ? -(parseInt(newString, 2) + 1) : parseInt(newString, 2);
 }
@@ -25,15 +27,19 @@ function numberToTwosComplement(number, numBits) {
     var posNum = !neg ? Math.abs(number) : Math.abs(number) - 1;
     var baseNumber = leftPad(numBits, posNum.toString(2), '0');
     var newNumber = neg ?
-        baseNumber.split("").map(function(val) {return val === '0' ? '1' : '0'; }).join("") :
+        baseNumber.split("").map(function(val) {
+            return val === '0' ? '1' : '0';
+        }).join("") :
         baseNumber;
     return newNumber;
 }
-function binaryToNumber(encodedString){
-    return parseInt(encodedString,2);
+
+function binaryToNumber(encodedString) {
+    return parseInt(encodedString, 2);
 }
-function numberToBinary(number,numbits){
-    return leftpad(numbits, nummber.toString(2),"0");
+
+function numberToBinary(number, numbits) {
+    return leftpad(numbits, number.toString(2), "0");
 }
 //The CPU with the the registers and opcodes
 class CPU {
@@ -64,16 +70,16 @@ class CPU {
                 execute: function(operand, memory) {
                     this.registers.acc += twosComplementToNumber(operand);
                 }.bind(this),
-                decodeOperand : twosComplementToNumber,
-                encodeOperand : numberToTwosComplement
+                decodeOperand: twosComplementToNumber,
+                encodeOperand: numberToTwosComplement
             },
             "SUB": {
                 opcode: "0010",
                 execute: function(operand, memory) {
                     this.registers.acc -= twosComplementToNumber(operand);
                 }.bind(this),
-                decodeOperand : twosComplementToNumber,
-                encodeOperand : numberToTwosComplement
+                decodeOperand: twosComplementToNumber,
+                encodeOperand: numberToTwosComplement
             },
             "LOD": {
                 opcode: "0011",
@@ -82,16 +88,16 @@ class CPU {
                     var value = twosComplementToNumber(memory[address]);
                     this.registers.acc = value;
                 }.bind(this),
-                decodeOperand : binaryToNumber,
-                encodeOperand : numberToBinary
+                decodeOperand: binaryToNumber,
+                encodeOperand: numberToBinary
             },
             "LDI": {
                 opcode: "0100",
                 load: function(operand, memory) {
                     this.registers.acc = twosComplementToNumber(operand);
                 }.bind(this),
-                decodeOperand : twosComplementToNumber,
-                encodeOperand : numberToTwosComplement
+                decodeOperand: twosComplementToNumber,
+                encodeOperand: numberToTwosComplement
             },
             "STO": {
                 opcode: "0101",
@@ -99,15 +105,15 @@ class CPU {
                     var address = parseInt(operand, 2);
                     memory[address] = numberToTwosComplement(this.registers.acc, 16);
                 }.bind(this),
-                decodeOperand : binaryToNumber,
-                encodeOperand : numberToBinary
+                decodeOperand: binaryToNumber,
+                encodeOperand: numberToBinary
             },
             "INP": {
                 opcode: "0110",
                 execute: function(operand) {
                     this.registers.acc = this.inputCallback();
                 }.bind(this),
-                
+
             },
             "OUT": {
                 opcode: "0111",
@@ -120,8 +126,8 @@ class CPU {
                 execute: function(operand) {
                     this.registers.pc = parseInt(operand, 2);
                 }.bind(this),
-                decodeOperand : binaryToNumber,
-                encodeOperand : numberToBinary
+                decodeOperand: binaryToNumber,
+                encodeOperand: numberToBinary
             },
             "JNG": {
                 opcode: "1001",
@@ -130,8 +136,8 @@ class CPU {
                         this.registers.pc = parseInt(operand, 2);
                     }
                 }.bind(this),
-                decodeOperand : binaryToNumber,
-                encodeOperand : numberToBinary
+                decodeOperand: binaryToNumber,
+                encodeOperand: numberToBinary
             },
             "JZR": {
                 opcode: "1010",
@@ -140,8 +146,8 @@ class CPU {
                         this.registers.pc = parseInt(operand, 2);
                     }
                 }.bind(this),
-                decodeOperand : binaryToNumber,
-                encodeOperand : numberToBinary
+                decodeOperand: binaryToNumber,
+                encodeOperand: numberToBinary
             }
 
         };
@@ -185,8 +191,10 @@ class computer {
             console.error("{ memorySize: ..., inputCallback : function(){...}, outputCallback : function(outWord){...}}");
             return;
         }
-        this.cpu = new CPU(config.inputCallback || function() { return 0;}, 
-                           config.outputCallback || function(outWord) {});
+        this.cpu = new CPU(config.inputCallback || function() {
+                return 0;
+            },
+            config.outputCallback || function(outWord) {});
         this.memory = new Array(config.memorySize || 16); //default 16 words
         this.opcode = "";
         this.operand = "";
