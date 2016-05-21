@@ -12,7 +12,7 @@ function leftPad(size, baseString, padChar) {
 
 function twosComplementToNumber(encodedString) {
     "use strict";
-    var leadingOne = encodedString[0] === '1';
+    var leadingOne=encodedString.charAt(0) === '1';
     var newString = leadingOne ?
         encodedString.split("").map(function(val) {
             return val === '0' ? '1' : '0';
@@ -35,13 +35,23 @@ function numberToTwosComplement(number, numBits) {
 }
 
 function binaryToNumber(encodedString) {
+     "use strict";
     return parseInt(encodedString, 2);
 }
 
 function numberToBinary(number, numbits) {
-    return leftpad(numbits, number.toString(2), "0");
+     "use strict";
+    return leftPad(numbits, number.toString(2), "0");
 }
 //The CPU with the the registers and opcodes
+//
+class dataTransferObject {
+    constructor(pTo, pFrom, pValue) {
+        this.to = pTo;
+        this.from = pFrom;
+        this.val = pValue;
+    }
+}
 class CPU {
     constructor(inputCallback, outputCallback) {
         this.inputCallback = inputCallback;
@@ -51,79 +61,118 @@ class CPU {
             normal: "normal"
         };
         this.state = this.CPUstates.normal;
+
         this.registers = {
+
             pc: 0,
             acc: 0,
-            temp: 0,
             ir: 0
         };
+
 
         this.instructionSet = {
             "STP": {
                 opcode: "1111",
                 execute: function(operand) {
+                     "use strict";
                     this.state = this.CPUstates.stopped;
                 }.bind(this)
             },
             "ADD": {
                 opcode: "0001",
-                execute: function(operand, memory) {
+                execute: function(operand) {
+                     "use strict";
                     this.registers.acc += twosComplementToNumber(operand);
                 }.bind(this),
                 decodeOperand: twosComplementToNumber,
-                encodeOperand: numberToTwosComplement
+                encodeOperand: numberToTwosComplement,
+                dataTransferDirection: function(operand, memory) {
+                     "use strict";
+                    return new dataTransferObject("acc", undefined, undefined);
+                }
             },
             "SUB": {
                 opcode: "0010",
-                execute: function(operand, memory) {
+                execute: function(operand) {
+                     "use strict";
                     this.registers.acc -= twosComplementToNumber(operand);
                 }.bind(this),
                 decodeOperand: twosComplementToNumber,
-                encodeOperand: numberToTwosComplement
+                encodeOperand: numberToTwosComplement,
+                dataTransferDirection: function(operand, memory) {
+                     "use strict";
+                    return new dataTransferObject("acc", undefined, undefined);
+                }
             },
             "LOD": {
                 opcode: "0011",
                 load: function(operand, memory) {
+                     "use strict";
                     var address = parseInt(operand, 2);
                     var value = twosComplementToNumber(memory[address]);
                     this.registers.acc = value;
                 }.bind(this),
                 decodeOperand: binaryToNumber,
-                encodeOperand: numberToBinary
+                encodeOperand: numberToBinary,
+                dataTransferDirection: function(operand, memory) {
+                     "use strict";
+                    var address = parseInt(operand, 2);
+                    return new dataTransferObject("acc", "memory", twosComplementToNumber(memory[address]));
+                }
             },
             "LDI": {
                 opcode: "0100",
                 load: function(operand, memory) {
+                     "use strict";
                     this.registers.acc = twosComplementToNumber(operand);
                 }.bind(this),
                 decodeOperand: twosComplementToNumber,
-                encodeOperand: numberToTwosComplement
+                encodeOperand: numberToTwosComplement,
+                dataTransferDirection: function(operand, memory) {
+                     "use strict";
+                    return new dataTransferObject("acc", undefined, undefined);
+                }
             },
             "STO": {
                 opcode: "0101",
-                execute: function(operand, memory) {
+                execute: function(operand) {
+                     "use strict";
                     var address = parseInt(operand, 2);
                     memory[address] = numberToTwosComplement(this.registers.acc, 16);
                 }.bind(this),
                 decodeOperand: binaryToNumber,
-                encodeOperand: numberToBinary
+                encodeOperand: numberToBinary,
+                dataTransferDirection: function(operand, memory) {
+                     "use strict";
+                    return new dataTransferObject("memory", "acc", numberToTwosComplement(this.registers.acc, 16));
+                }.bind(this)
             },
             "INP": {
                 opcode: "0110",
                 execute: function(operand) {
+                     "use strict";
                     this.registers.acc = this.inputCallback();
                 }.bind(this),
+                dataTransferDirection: function(operand, memory) {
+                     "use strict";
+                    return new dataTransferObject("acc", "input", this.inputCallback());
+                }.bind(this)
 
             },
             "OUT": {
                 opcode: "0111",
                 execute: function(operand) {
                     this.outputCallback(this.registers.acc);
+                }.bind(this),
+                dataTransferDirection: function(operand, memory) {
+                     "use strict";
+                    return new dataTransferObject("output", "acc", numberToTwosComplement(this.registers.acc, 16));
                 }.bind(this)
             },
             "JMP": {
                 opcode: "1000",
                 execute: function(operand) {
+                     "use strict";
                     this.registers.pc = parseInt(operand, 2);
                 }.bind(this),
                 decodeOperand: binaryToNumber,
@@ -132,6 +181,7 @@ class CPU {
             "JNG": {
                 opcode: "1001",
                 execute: function(operand) {
+                     "use strict";
                     if (this.registers.acc < 0) {
                         this.registers.pc = parseInt(operand, 2);
                     }
@@ -142,6 +192,7 @@ class CPU {
             "JZR": {
                 opcode: "1010",
                 execute: function(operand) {
+                     "use strict";
                     if (this.registers.acc === 0) {
                         this.registers.pc = parseInt(operand, 2);
                     }
@@ -242,12 +293,12 @@ class computer {
     }
     load() {
         if (this.cpu.instructionSet[this.opcode].hasOwnProperty("load")) {
-            this.cpu.instructionSet[this.opcode].load(this.operand);
+            this.cpu.instructionSet[this.opcode].load(this.operand,this.memory);
         }
     }
     exec() {
         if (this.cpu.instructionSet[this.opcode].hasOwnProperty("execute")) {
-            this.cpu.instructionSet[this.opcode].execute(this.operand);
+            this.cpu.instructionSet[this.opcode].execute(this.operand,this.memory);
         }
 
     }

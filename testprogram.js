@@ -16,7 +16,7 @@ var webcomputer = new computer({
     }
 });
 //Initial memory
-webcomputer.uploadMemory(["0001000000000001",
+webcomputer.uploadMemory(["0011000000000101",
     "0001000000000010",
     "1111000000000000",
     "1111000000000000",
@@ -59,14 +59,18 @@ var memoryBindings = {
 };
 var bindings = [registersBindings, memoryBindings];
 
-//Setup initial display
-bindings.forEach(function(Object, number) {
-    Object.update();
-});
+function updateBindings() {
+     "use strict";
+    bindings.forEach(function(Object, number) {
+        Object.update();
+    });
+}
+updateBindings();
 
-//Event HAndlers
+//Event Handlers
 
 function dissassemble() {
+     "use strict";
     //aliasing
     var memory = webcomputer.dumpMemory();
     var instructionset = webcomputer.cpu.instructionSet;
@@ -94,6 +98,7 @@ function dissassemble() {
 }
 
 function assemble() {
+     "use strict";
     //aliases
     var instructionset = webcomputer.cpu.instructionSet;
     var lookupTable = webcomputer.cpu.forwardLookupTable;
@@ -148,21 +153,68 @@ function assemble() {
     } else {
         document.getElementById("log").innerHTML = errorLog.join("<br>");
     }
-    bindings.forEach(function(Object, number) {
-        Object.update();
-    });
+    updateBindings()
 }
 
 function nextInstruction() {
+    "use strict";
     webcomputer.executeNextInstruction();
-    bindings.forEach(function(Object, number) {
-        Object.update();
-    });
+    //Get animation data.
+    //JavaScript Promises would be great here actually.
+    //Sticking with the simple stuff for now.
+
+    if (webcomputer.cpu.instructionSet[webcomputer.opcode].hasOwnProperty("dataTransferDirection")) {
+        var dt=webcomputer.cpu.instructionSet[webcomputer.opcode].dataTransferDirection(webcomputer.operand, webcomputer.memory);
+
+        var animeString = "none";
+        var val;
+        if(dt.to === "acc" && dt.from === "memory"){
+            animeString = "memoryToAcc";
+            val = dt.val;
+        } else if (dt.from === "acc" && dt.to === "memory"){
+            animeString = "accToMemory";
+            val = dt.val;
+        }  else if(dt.to ==="acc" && dt.from === "input"){
+            animeString = "ioToAcc";
+            val = dt.val;
+        }  else if(dt.to ==="output" && dt.from === "acc"){
+            animeString = "accToIo";
+            val = dt.val;
+        } else {
+            animeString = "none";
+            val ="";
+        }
+        if(animeString !== "none"){
+            animation(animeString, updateBindings, val);
+        } else {
+            updateBindings();
+        }
+    } else {
+        updateBindings();
+    }
 }
 
 function resetComputer() {
+     "use strict";
     webcomputer.reset();
-    bindings.forEach(function(Object, number) {
-        Object.update();
-    });
+    updateBindings();
+}
+
+
+function animation(anime, afterFunction,val) {
+     "use strict";
+    var container = document.getElementById("cpucontainer");
+    var label = document.createElement("LABEL");
+    label.innerHTML = val;
+    label.style.position = "absolute";
+    label.style.top = "200px";
+    label.style.animationName = anime;
+    label.style.animationDuration = "1s";
+    //The element will remove itself once the animation ends
+    label.addEventListener("animationend", function() {
+        container.removeChild(label);
+        afterFunction();
+    }, false);
+    container.appendChild(label);
+
 }
