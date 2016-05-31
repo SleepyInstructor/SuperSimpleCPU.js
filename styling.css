@@ -31,7 +31,8 @@
     float: right;
 }
 .pc {
-    background-color: blue;
+    border: solid;
+    border-width: thin;
 }
 /* Animation stuff */
 

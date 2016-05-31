@@ -12,7 +12,7 @@ var webcomputer = new computer({
     outputCallback: function(output) {
         "use strict";
         var element = document.getElementById("output");
-         var cleanUpOutput = function() {
+        var cleanUpOutput = function() {
             element.classList.remove("touched");
             element.removeEventListener("animationend", cleanUpOutput, false);
         }
@@ -45,8 +45,17 @@ webcomputer.uploadMemory(["0011000000000101",
 //Data binding
 //Should probbaly use Angular.js to do this, but I want
 //to avoid dependencies on other projects, so code-behind it is!
+
+function addFlashEffect(element) {
+    var cleanUp = function() {
+        element.classList.remove("touched");
+        element.removeEventListener("animationend", cleanUp, false);
+    }
+    element.classList.add("touched");
+    element.addEventListener("animationend", cleanUp, false);
+}
 var registersBindings = {
-    computer : webcomputer,
+    computer: webcomputer,
     registers: webcomputer.cpu.registers,
     ir: "ir",
     pc: "pc",
@@ -69,31 +78,14 @@ var registersBindings = {
         pcElement.innerHTML = this.registers.pc;
         accElement.innerHTML = this.registers.acc;
 
-
-        var cleanUpIr = function() {
-            irElement.classList.remove("touched");
-            irElement.removeEventListener("animationend", cleanUpIr, false);
-        };
-
         if (changeHightlights.hasOwnProperty("ir")) {
-            irElement.classList.add("touched");
-            irElement.addEventListener("animationend", cleanUpIr, false);
-        }
-        var cleanUpPc = function() {
-            pcElement.classList.remove("touched");
-            pcElement.removeEventListener("animationend", cleanUpPc, false);
+            addFlashEffect(irElement);
         }
         if (changeHightlights.hasOwnProperty("pc")) {
-            pcElement.classList.add("touched");
-            pcElement.addEventListener("animationend", cleanUpPc, false);
-        }
-        var cleanUpAcc = function() {
-            accElement.classList.remove("touched");
-            accElement.removeEventListener("animationend", cleanUpAcc, false);
+            addFlashEffect(pcElement);
         }
         if (changeHightlights.hasOwnProperty("acc")) {
-            accElement.classList.add("touched");
-            accElement.addEventListener("animationend", cleanUpAcc, false);
+            addFlashEffect(accElement);
         }
 
     }
@@ -103,7 +95,7 @@ var memoryBindings = {
     memLabel: "memory",
     registers: webcomputer.cpu.registers,
     update: function(changeHightlights) {
-        if(typeof(changeHightlights) !== "object"){
+        if (typeof(changeHightlights) !== "object") {
             changeHightlights = {};
         }
         var activeCell = changeHightlights.hasOwnProperty("memory") ? changeHightlights.memory : -1;
@@ -112,9 +104,9 @@ var memoryBindings = {
         var newTable = '<table ><tr><th>Index</th><th>Value</th></tr>' + webcomputer.memory.map(function(obj, num) {
             var outString = "";
             var animateClass = num == activeCell ? 'class="memValue touched"' : 'class="memVale"';
-            var indexClass = num === pc ? 'class="memIndex pc"':'class="memIndex"';
-            outString += '<tr><td><label '+indexClass+'>' + num + ' </label></td>';
-            outString += '<td><label '+ animateClass+ '>' + obj + '</label></td></tr>';
+            var indexClass = num === pc ? 'class="memIndex pc"' : 'class="memIndex"';
+            outString += '<tr><td '+indexClass+'><label>' + num + ' </label></td>';
+            outString += '<td><label ' + animateClass + '>' + obj + '</label></td></tr>';
             return outString;
         }).join("") + '</table>';
         document.getElementById(this.memLabel).innerHTML = newTable;
@@ -224,7 +216,9 @@ function assemble() {
 
 function nextInstruction() {
     "use strict";
-
+    if(webcomputer.cpu.state == webcomputer.cpu.CPUstates.stopped){
+        return;
+    }
     function execPart1() {
         var currentPC = webcomputer.cpu.pc;
         webcomputer.executeClockPulse(); //perform fetch instruction
@@ -269,6 +263,10 @@ function nextInstruction() {
                 animeString = "accToIo";
                 val = twosComplementToNumber(dt.val);
                 configObject.output = "";
+            } else if (dt.to === "acc") {
+                animeString = "none";
+                val = "";
+                configObject.acc = "";
             } else {
                 animeString = "none";
                 val = "";
@@ -278,7 +276,7 @@ function nextInstruction() {
 
                 animation(animeString, updateBindings.bind(this, configObject), val);
             } else {
-                updateBindings();
+                updateBindings(configObject);
             }
         } else {
             updateBindings();
