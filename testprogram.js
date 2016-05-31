@@ -12,6 +12,12 @@ var webcomputer = new computer({
     outputCallback: function(output) {
         "use strict";
         var element = document.getElementById("output");
+         var cleanUpOutput = function() {
+            element.classList.remove("touched");
+            element.removeEventListener("animationend", cleanUpOutput, false);
+        }
+        element.classList.add("touched");
+        element.addEventListener("animationend", cleanUpOutput, false);
         element.innerHTML = output;
     }
 });
@@ -33,36 +39,91 @@ webcomputer.uploadMemory(["0011000000000101",
     "1111000000000000",
     "1111000000000000"
 ]);
+//Data Bindings
+//This file should be included after other files. Connects up
+//the model to view
 //Data binding
 //Should probbaly use Angular.js to do this, but I want
 //to avoid dependencies on other projects, so code-behind it is!
 var registersBindings = {
+    computer : webcomputer,
     registers: webcomputer.cpu.registers,
     ir: "ir",
     pc: "pc",
     acc: "acc",
     state: "state",
 
-    update: function() {
-        document.getElementById(this.ir).innerHTML = this.registers.ir;
-        document.getElementById(this.pc).innerHTML = this.registers.pc;
-        document.getElementById(this.acc).innerHTML = this.registers.acc;
+    update: function(changeHightlights) {
+
+        var irElement = document.getElementById(this.ir);
+        var pcElement = document.getElementById(this.pc);
+        var accElement = document.getElementById(this.acc);
+        var stateElement = document.getElementById(this.state);
+        if (typeof(changeHightlights) !== "object") {
+            // force changeHighlights to be an object
+            // so the rest of the code is simpler.
+            changeHightlights = {};
+        }
+        stateElement.innerHTML = this.computer.cpu.state;
+        irElement.innerHTML = this.registers.ir;
+        pcElement.innerHTML = this.registers.pc;
+        accElement.innerHTML = this.registers.acc;
+
+
+        var cleanUpIr = function() {
+            irElement.classList.remove("touched");
+            irElement.removeEventListener("animationend", cleanUpIr, false);
+        };
+
+        if (changeHightlights.hasOwnProperty("ir")) {
+            irElement.classList.add("touched");
+            irElement.addEventListener("animationend", cleanUpIr, false);
+        }
+        var cleanUpPc = function() {
+            pcElement.classList.remove("touched");
+            pcElement.removeEventListener("animationend", cleanUpPc, false);
+        }
+        if (changeHightlights.hasOwnProperty("pc")) {
+            pcElement.classList.add("touched");
+            pcElement.addEventListener("animationend", cleanUpPc, false);
+        }
+        var cleanUpAcc = function() {
+            accElement.classList.remove("touched");
+            accElement.removeEventListener("animationend", cleanUpAcc, false);
+        }
+        if (changeHightlights.hasOwnProperty("acc")) {
+            accElement.classList.add("touched");
+            accElement.addEventListener("animationend", cleanUpAcc, false);
+        }
 
     }
 };
 var memoryBindings = {
 
     memLabel: "memory",
-    update: function() {
-        document.getElementById(this.memLabel).innerHTML = webcomputer.memory.join("<br>");
+    update: function(changeHightlights) {
+        if(typeof(changeHightlights) !== "object"){
+            changeHightlights = {};
+        }
+        var activeCell = changeHightlights.hasOwnProperty("memory") ? changeHightlights.memory : -1;
+
+        var newTable = '<table class="memTable"><tr><th>Index</th><th>Value</th></tr>' + webcomputer.memory.map(function(obj, num) {
+            var outString = "";
+            var animateClass = num == activeCell ? 'class="memValue touched"' : 'class="memVale"';
+
+            outString += '<tr><td><label class="memIndex">' + num + ' </label></td>';
+            outString += '<td><label '+ animateClass+ '>' + obj + '</label></td></tr>';
+            return outString;
+        }).join("") + '</table>';
+        document.getElementById(this.memLabel).innerHTML = newTable;
     }
 };
 var bindings = [registersBindings, memoryBindings];
 
-function updateBindings() {
-     "use strict";
+function updateBindings(changeHightlights) {
+    "use strict";
     bindings.forEach(function(Object, number) {
-        Object.update();
+        Object.update(changeHightlights);
     });
 }
 updateBindings();
@@ -70,11 +131,12 @@ updateBindings();
 //Event Handlers
 
 function dissassemble() {
-     "use strict";
+    "use strict";
     //aliasing
     var memory = webcomputer.dumpMemory();
     var instructionset = webcomputer.cpu.instructionSet;
     var reverseLookup = webcomputer.cpu.reverseLookupTable;
+
 
     var asm = memory.map(function(bitString, Number) {
         var opcode = bitString.substring(0, 4); //Assume 4 bit
@@ -98,7 +160,7 @@ function dissassemble() {
 }
 
 function assemble() {
-     "use strict";
+    "use strict";
     //aliases
     var instructionset = webcomputer.cpu.instructionSet;
     var lookupTable = webcomputer.cpu.forwardLookupTable;
@@ -156,53 +218,82 @@ function assemble() {
     updateBindings()
 }
 
+//Event handlers
+
 function nextInstruction() {
     "use strict";
-    webcomputer.executeNextInstruction();
-    //Get animation data.
-    //JavaScript Promises would be great here actually.
-    //Sticking with the simple stuff for now.
 
-    if (webcomputer.cpu.instructionSet[webcomputer.opcode].hasOwnProperty("dataTransferDirection")) {
-        var dt=webcomputer.cpu.instructionSet[webcomputer.opcode].dataTransferDirection(webcomputer.operand, webcomputer.memory);
+    function execPart1() {
+        var currentPC = webcomputer.cpu.pc;
+        webcomputer.executeClockPulse(); //perform fetch instruction
+        //animate fetch
+        animation("memoryToAcc", execPart2, "instructions");
+    }
 
-        var animeString = "none";
-        var val;
-        if(dt.to === "acc" && dt.from === "memory"){
-            animeString = "memoryToAcc";
-            val = dt.val;
-        } else if (dt.from === "acc" && dt.to === "memory"){
-            animeString = "accToMemory";
-            val = dt.val;
-        }  else if(dt.to ==="acc" && dt.from === "input"){
-            animeString = "ioToAcc";
-            val = dt.val;
-        }  else if(dt.to ==="output" && dt.from === "acc"){
-            animeString = "accToIo";
-            val = dt.val;
-        } else {
-            animeString = "none";
-            val ="";
-        }
-        if(animeString !== "none"){
-            animation(animeString, updateBindings, val);
+
+    //update bindings to reflect update in the PC and IR
+
+    function execPart2() {
+        updateBindings({
+            ir: "changed",
+            pc: "changed"
+        });
+        //Perform the remainder of the cycles
+        webcomputer.executeNextInstruction();
+
+        //Get animation data.
+        //JavaScript Promises would be great here actually.
+        //Sticking with the simple stuff for now.
+
+        if (webcomputer.cpu.instructionSet[webcomputer.opcode].hasOwnProperty("dataTransferDirection")) {
+            var dt = webcomputer.cpu.instructionSet[webcomputer.opcode].dataTransferDirection(webcomputer.operand, webcomputer.memory);
+
+            var animeString = "none";
+            var configObject = {};
+            var val;
+            if (dt.to === "acc" && dt.from === "memory") {
+                animeString = "memoryToAcc";
+                val = dt.val;
+                configObject.acc = "";
+            } else if (dt.from === "acc" && dt.to === "memory") {
+                animeString = "accToMemory";
+                val = dt.val;
+                configObject.memory = binaryToNumber(webcomputer.operand);
+            } else if (dt.to === "acc" && dt.from === "input") {
+                animeString = "ioToAcc";
+                val = dt.val;
+                configObject.acc = "";
+            } else if (dt.to === "output" && dt.from === "acc") {
+                animeString = "accToIo";
+                val = twosComplementToNumber(dt.val);
+                configObject.output = "";
+            } else {
+                animeString = "none";
+                val = "";
+            }
+            if (animeString !== "none") {
+
+
+                animation(animeString, updateBindings.bind(this, configObject), val);
+            } else {
+                updateBindings();
+            }
         } else {
             updateBindings();
         }
-    } else {
-        updateBindings();
     }
+
+    execPart1(); //Part 2 is executed inside part 1.
 }
 
 function resetComputer() {
-     "use strict";
+    "use strict";
     webcomputer.reset();
     updateBindings();
 }
-
-
-function animation(anime, afterFunction,val) {
-     "use strict";
+/*Helpers */
+function animation(anime, afterFunction, val) {
+    "use strict";
     var container = document.getElementById("cpucontainer");
     var label = document.createElement("LABEL");
     label.innerHTML = val;
@@ -211,10 +302,30 @@ function animation(anime, afterFunction,val) {
     label.style.animationName = anime;
     label.style.animationDuration = "1s";
     //The element will remove itself once the animation ends
-    label.addEventListener("animationend", function() {
+    var cleanup = function() {
         container.removeChild(label);
+
+
         afterFunction();
-    }, false);
+    }
+    label.addEventListener("animationend", cleanup, false);
     container.appendChild(label);
 
+
 }
+//Draws the underlay for the graphics
+function drawUnderlay() {
+    var canvas = document.getElementById("underlay");
+    var ctx = canvas.getContext("2d");
+
+    ctx.beginPath();
+    ctx.lineTo(50, 50);
+    ctx.lineTo(50, 150);
+    ctx.lineTo(400, 150);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.lineTo(250, 100);
+    ctx.lineTo(250, 150);
+    ctx.stroke();
+};
+drawUnderlay();

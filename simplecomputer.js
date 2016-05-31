@@ -82,7 +82,7 @@ class CPU {
                 opcode: "0001",
                 execute: function(operand) {
                      "use strict";
-                    this.registers.acc += twosComplementToNumber(operand);
+                    this.registers.acc = parseInt(this.registers.acc) +twosComplementToNumber(operand);
                 }.bind(this),
                 decodeOperand: twosComplementToNumber,
                 encodeOperand: numberToTwosComplement,

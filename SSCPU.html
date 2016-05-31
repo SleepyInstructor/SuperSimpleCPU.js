@@ -5,13 +5,15 @@
     <meta charset="UTF-8">
     <script src="simplecomputer.js" defer></script>
     <script src="testprogram.js" defer></script>
+
     <link rel="stylesheet" type="text/css" href="styling.css">
 </head>
 
 <body>
     <h1>Simple CPU Emulator</h1>
-    <div id = "cpucontainer" class="cpucontainer">
-        <div class="io">
+    <div id="cpucontainer" class="cpucontainer">
+        <canvas id="underlay" width ="600" height="400" class="canvasunderlay"></canvas>
+        <div id = "iocontainer" class="io">
             <div>
                 <label>Input</label>
                 <input id="input" type="number">
@@ -23,17 +25,20 @@
         </div>
 
         <div id="registers" class="registers">
-            <label>Current State</label>
+            <label>Current State:</label>
             <label id="state"></label>
             <br>
             <label>Registers</label>
             <br>
             <label class="reg">PC:</label>
-            <label id="pc" class="regValue"></label><br>
+            <label id="pc" class="regValue"></label>
+            <br>
             <label class="reg">IR:</label>
-            <label id="ir" class="regValue"></label><br>
+            <label id="ir" class="regValue"></label>
+            <br>
             <label class="reg">ACC:</label>
-            <label id="acc" class="regValue"></label><br>
+            <label id="acc" class="regValue"></label>
+            <br>
             <label class="error" id="error"></label>
         </div>
         <div id="memory" class="memory"></div>
@@ -41,7 +46,6 @@
     <div id="controls" class="controls">
         <input type="button" value="Execute Next Instruction" onclick="nextInstruction()">
         <input type="button" value="Reset Computer" onclick="resetComputer()">
-        <input type="button" value="Test Animation" onclick="testAnimation()">
     </div>
     <div id="disassemblywindow">
         <input type="button" onclick="dissassemble()" value="dissassemble">
