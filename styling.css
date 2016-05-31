@@ -30,6 +30,9 @@
     left: 400px;
     float: right;
 }
+.pc {
+    background-color: blue;
+}
 /* Animation stuff */
 
 /* bus animations */

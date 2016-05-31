@@ -101,17 +101,19 @@ var registersBindings = {
 var memoryBindings = {
 
     memLabel: "memory",
+    registers: webcomputer.cpu.registers,
     update: function(changeHightlights) {
         if(typeof(changeHightlights) !== "object"){
             changeHightlights = {};
         }
         var activeCell = changeHightlights.hasOwnProperty("memory") ? changeHightlights.memory : -1;
+        var pc = this.registers.pc;
 
-        var newTable = '<table class="memTable"><tr><th>Index</th><th>Value</th></tr>' + webcomputer.memory.map(function(obj, num) {
+        var newTable = '<table ><tr><th>Index</th><th>Value</th></tr>' + webcomputer.memory.map(function(obj, num) {
             var outString = "";
             var animateClass = num == activeCell ? 'class="memValue touched"' : 'class="memVale"';
-
-            outString += '<tr><td><label class="memIndex">' + num + ' </label></td>';
+            var indexClass = num === pc ? 'class="memIndex pc"':'class="memIndex"';
+            outString += '<tr><td><label '+indexClass+'>' + num + ' </label></td>';
             outString += '<td><label '+ animateClass+ '>' + obj + '</label></td></tr>';
             return outString;
         }).join("") + '</table>';
