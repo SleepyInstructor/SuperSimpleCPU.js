@@ -105,7 +105,7 @@ var memoryBindings = {
             var outString = "";
             var animateClass = num == activeCell ? 'class="memValue touched"' : 'class="memVale"';
             var indexClass = num === pc ? 'class="memIndex pc"' : 'class="memIndex"';
-            outString += '<tr><td '+indexClass+'><label>' + num + ' </label></td>';
+            outString += '<tr><td ' + indexClass + '><label>' + num + ' </label></td>';
             outString += '<td><label ' + animateClass + '>' + obj + '</label></td></tr>';
             return outString;
         }).join("") + '</table>';
@@ -216,9 +216,10 @@ function assemble() {
 
 function nextInstruction() {
     "use strict";
-    if(webcomputer.cpu.state == webcomputer.cpu.CPUstates.stopped){
+    if (webcomputer.cpu.state == webcomputer.cpu.CPUstates.stopped) {
         return;
     }
+
     function execPart1() {
         var currentPC = webcomputer.cpu.pc;
         webcomputer.executeClockPulse(); //perform fetch instruction
@@ -286,10 +287,42 @@ function nextInstruction() {
     execPart1(); //Part 2 is executed inside part 1.
 }
 
+//Execute the program, without doing intermediate updates.
+function executeProgram() {
+    while (webcomputer.cpu.state !== webcomputer.cpu.CPUstates.stopped) {
+        webcomputer.executeNextInstruction();
+    }
+    updateBindings();
+}
+
 function resetComputer() {
     "use strict";
     webcomputer.reset();
     updateBindings();
+}
+
+function displayInstructions() {
+    var instructionContainer = document.getElementById("instructionSet");
+    var iTable = generateIntructionHelpTable(webcomputer.cpu.instructionSet);
+    instructionContainer.innerHTML = iTable;
+
+}
+
+function generateIntructionHelpTable(instructionSet) {
+
+    if (typeof(instructionSet) !== "object") {
+        return "";
+    }
+    function colWrap(data){ return "<td>" + data + "</td>";}
+
+    var instructions = Object.getOwnPropertyNames(instructionSet);
+    var rows = instructions.map(function(object, index){
+        return "<tr>"+colWrap(object)+colWrap(instructionSet[object].opcode)+
+               colWrap(instructionSet[object].description)+"</tr>";
+    });
+    var headings = "<tr><th>Mnemonic</th><th>Opcode</th><th>Description</th></tr>";
+    return "<table>"+headings+rows.join("")+"</table>";
+
 }
 /*Helpers */
 function animation(anime, afterFunction, val) {
@@ -304,14 +337,10 @@ function animation(anime, afterFunction, val) {
     //The element will remove itself once the animation ends
     var cleanup = function() {
         container.removeChild(label);
-
-
         afterFunction();
     }
     label.addEventListener("animationend", cleanup, false);
     container.appendChild(label);
-
-
 }
 //Draws the underlay for the graphics
 function drawUnderlay() {
@@ -328,4 +357,12 @@ function drawUnderlay() {
     ctx.lineTo(250, 150);
     ctx.stroke();
 };
+
+function clearMem() {
+    for (var i = 0; i < webcomputer.memory.length; i += 1) {
+        webcomputer.memory[i] = "0000000000000000";
+    }
+    updateBindings();
+}
+
 drawUnderlay();

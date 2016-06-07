@@ -12,7 +12,7 @@ function leftPad(size, baseString, padChar) {
 
 function twosComplementToNumber(encodedString) {
     "use strict";
-    var leadingOne=encodedString.charAt(0) === '1';
+    var leadingOne = encodedString.charAt(0) === '1';
     var newString = leadingOne ?
         encodedString.split("").map(function(val) {
             return val === '0' ? '1' : '0';
@@ -35,12 +35,12 @@ function numberToTwosComplement(number, numBits) {
 }
 
 function binaryToNumber(encodedString) {
-     "use strict";
+    "use strict";
     return parseInt(encodedString, 2);
 }
 
 function numberToBinary(number, numbits) {
-     "use strict";
+    "use strict";
     return leftPad(numbits, number.toString(2), "0");
 }
 //The CPU with the the registers and opcodes
@@ -66,7 +66,8 @@ class CPU {
 
             pc: 0,
             acc: 0,
-            ir: 0
+            ir: 0,
+            temp: 0
         };
 
 
@@ -74,40 +75,59 @@ class CPU {
             "STP": {
                 opcode: "1111",
                 execute: function(operand) {
-                     "use strict";
+                    "use strict";
                     this.state = this.CPUstates.stopped;
-                }.bind(this)
+                }.bind(this),
+                description: "This  stops  the  computer;  no  more  fetch/decode/execute  cycles until you reset."
             },
             "ADD": {
                 opcode: "0001",
-                execute: function(operand) {
-                     "use strict";
-                    this.registers.acc = parseInt(this.registers.acc) +twosComplementToNumber(operand);
+                load: function(operand, memory) {
+                    "use strict";
+                    var address = parseInt(operand, 2);
+                    var value = twosComplementToNumber(memory[address]);
+                    this.registers.temp = value;
+
                 }.bind(this),
-                decodeOperand: twosComplementToNumber,
-                encodeOperand: numberToTwosComplement,
+                execute: function(operand) {
+                    "use strict";
+                    this.registers.acc = parseInt(this.registers.acc) + parseInt(this.registers.temp);
+                }.bind(this),
+                decodeOperand: binaryToNumber,
+                encodeOperand: numberToBinary,
                 dataTransferDirection: function(operand, memory) {
-                     "use strict";
-                    return new dataTransferObject("acc", undefined, undefined);
-                }
+                    "use strict";
+                    var address = parseInt(operand, 2);
+                    return new dataTransferObject("acc", "memory", twosComplementToNumber(memory[address]));
+                },
+                description: "Fetch  a  number  from  memory  and  add  it  to  the  contents  of the  accumulator,  replacing  the  value  in  the  accumulator. (E.g.,  0001000000001111:  Get  the  value  at  memory  location  15 and add that to the accumulator.) "
             },
             "SUB": {
                 opcode: "0010",
-                execute: function(operand) {
-                     "use strict";
-                    this.registers.acc -= twosComplementToNumber(operand);
+                load: function(operand, memory) {
+                    "use strict";
+                    var address = parseInt(operand, 2);
+                    var value = twosComplementToNumber(memory[address]);
+                    this.registers.temp = value;
+
                 }.bind(this),
-                decodeOperand: twosComplementToNumber,
-                encodeOperand: numberToTwosComplement,
+                execute: function(operand) {
+                    "use strict";
+                    this.registers.acc -= parseInt(this.registers.temp);
+                }.bind(this),
+                decodeOperand: binaryToNumber,
+                encodeOperand: numberToBinary,
                 dataTransferDirection: function(operand, memory) {
-                     "use strict";
-                    return new dataTransferObject("acc", undefined, undefined);
-                }
+                    "use strict";
+                    var address = parseInt(operand, 2);
+                    return new dataTransferObject("acc", "memory", twosComplementToNumber(memory[address]));
+                },
+                description: "Fetch  a  number  from  memory  and  subtract  it  from  the  contents  of the accumulator, replacing the value in the accumulator. "
             },
             "LOD": {
                 opcode: "0011",
                 load: function(operand, memory) {
-                     "use strict";
+                    "use strict";
                     var address = parseInt(operand, 2);
                     var value = twosComplementToNumber(memory[address]);
                     this.registers.acc = value;
@@ -115,48 +135,52 @@ class CPU {
                 decodeOperand: binaryToNumber,
                 encodeOperand: numberToBinary,
                 dataTransferDirection: function(operand, memory) {
-                     "use strict";
+                    "use strict";
                     var address = parseInt(operand, 2);
                     return new dataTransferObject("acc", "memory", twosComplementToNumber(memory[address]));
-                }
+                },
+                description: "Fetch  a  number  from  memory  and  store  it  in  the  accumulator,  replacing  the  accumulator’s  old  value.  (E.g.,  0011000000001111:  Get the value at memory location 15 and store that value in the accumulator.) "
             },
             "LDI": {
                 opcode: "0100",
                 load: function(operand, memory) {
-                     "use strict";
+                    "use strict";
                     this.registers.acc = twosComplementToNumber(operand);
                 }.bind(this),
                 decodeOperand: twosComplementToNumber,
                 encodeOperand: numberToTwosComplement,
                 dataTransferDirection: function(operand, memory) {
-                     "use strict";
+                    "use strict";
                     return new dataTransferObject("acc", undefined, undefined);
-                }
+                },
+                description: "Load  immediate;  the  value  to  be  put  in  the  accumulator  is  the  operand  (the  rightmost  12  bits  of  the  instruction);  do  not  go  to  memory like LOD. (E.g., 0100000000001111: Store the value 15 in the accumulator.) "
             },
             "STO": {
                 opcode: "0101",
                 execute: function(operand) {
-                     "use strict";
+                    "use strict";
                     var address = parseInt(operand, 2);
                     memory[address] = numberToTwosComplement(this.registers.acc, 16);
                 }.bind(this),
                 decodeOperand: binaryToNumber,
                 encodeOperand: numberToBinary,
                 dataTransferDirection: function(operand, memory) {
-                     "use strict";
+                    "use strict";
                     return new dataTransferObject("memory", "acc", numberToTwosComplement(this.registers.acc, 16));
-                }.bind(this)
+                }.bind(this),
+                description: "Store  the  accumulator’s  value  in  memory  at  the  indicated  location. (E.g., 010 100000000 1111: Store the accumulator’s value in memory location 15.) "
             },
             "INP": {
                 opcode: "0110",
                 execute: function(operand) {
-                     "use strict";
+                    "use strict";
                     this.registers.acc = this.inputCallback();
                 }.bind(this),
                 dataTransferDirection: function(operand, memory) {
-                     "use strict";
+                    "use strict";
                     return new dataTransferObject("acc", "input", this.inputCallback());
-                }.bind(this)
+                }.bind(this),
+                description : "Ask the user for one number and store that in the accumulator. "
 
             },
             "OUT": {
@@ -165,40 +189,44 @@ class CPU {
                     this.outputCallback(this.registers.acc);
                 }.bind(this),
                 dataTransferDirection: function(operand, memory) {
-                     "use strict";
+                    "use strict";
                     return new dataTransferObject("output", "acc", numberToTwosComplement(this.registers.acc, 16));
-                }.bind(this)
+                }.bind(this),
+                description: "Copy the value in the accumulator to the output area."
             },
             "JMP": {
                 opcode: "1000",
                 execute: function(operand) {
-                     "use strict";
+                    "use strict";
                     this.registers.pc = parseInt(operand, 2);
                 }.bind(this),
                 decodeOperand: binaryToNumber,
-                encodeOperand: numberToBinary
+                encodeOperand: numberToBinary,
+                description: "Jump  to  the  instruction  at  the  indicated  memory  address.  (E.g.,  1000000000001111:  Put  the  value  15  into  the  PC,  which  will  cause  the  next  instruction  to  be  taken  from  location  15  of  the  memory.) "
             },
             "JNG": {
                 opcode: "1001",
                 execute: function(operand) {
-                     "use strict";
+                    "use strict";
                     if (this.registers.acc < 0) {
                         this.registers.pc = parseInt(operand, 2);
                     }
                 }.bind(this),
                 decodeOperand: binaryToNumber,
-                encodeOperand: numberToBinary
+                encodeOperand: numberToBinary,
+                description: "Jump  to  the  instruction  at  the  indicated  memory  location  if  the  accumulator’s  value  is  negative;  otherwise,  just  add  1  to  the  PC.  (E.g.,  1001000000001111:  Put  the  value  15  into  the  PC,  if  accumulator < 0; otherwise, go to the next instruction.) "
             },
             "JZR": {
                 opcode: "1010",
                 execute: function(operand) {
-                     "use strict";
+                    "use strict";
                     if (this.registers.acc === 0) {
                         this.registers.pc = parseInt(operand, 2);
                     }
                 }.bind(this),
                 decodeOperand: binaryToNumber,
-                encodeOperand: numberToBinary
+                encodeOperand: numberToBinary,
+                description : "Jump  to  the  instruction  at  the  indicated  memory  location  if  the   accumulator’s  value  is  zero;  otherwise,  just  add  1  to  the  PC. (E.g.,  10  1000000000  1111:  Put  the  value  15  into  the  PC,  if  accumulator = 0; otherwise, go to the next instruction.) "
             }
 
         };
@@ -293,12 +321,12 @@ class computer {
     }
     load() {
         if (this.cpu.instructionSet[this.opcode].hasOwnProperty("load")) {
-            this.cpu.instructionSet[this.opcode].load(this.operand,this.memory);
+            this.cpu.instructionSet[this.opcode].load(this.operand, this.memory);
         }
     }
     exec() {
         if (this.cpu.instructionSet[this.opcode].hasOwnProperty("execute")) {
-            this.cpu.instructionSet[this.opcode].execute(this.operand,this.memory);
+            this.cpu.instructionSet[this.opcode].execute(this.operand, this.memory);
         }
 
     }

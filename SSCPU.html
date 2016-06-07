@@ -46,6 +46,9 @@
     <div id="controls" class="controls">
         <input type="button" value="Execute Next Instruction" onclick="nextInstruction()">
         <input type="button" value="Reset Computer" onclick="resetComputer()">
+        <input type="button" value="Execute Program" onclick="executeProgram()">
+        <input type="button" value="Clear Memory" onclick="clearMem()">
+        <input type="button" value="Display Instruction Set" onclick="displayInstructions()">
     </div>
     <div id="disassemblywindow">
         <input type="button" onclick="dissassemble()" value="dissassemble">
@@ -53,6 +56,8 @@
         <br>
         <textarea id="codeWindow" rows="32" cols="80"></textarea>
         <div id="log"></div>
+    </div>
+    <div id="instructionSet" class="infowindow">
     </div>
 
 </body>
