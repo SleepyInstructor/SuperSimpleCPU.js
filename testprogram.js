@@ -366,3 +366,4 @@ function clearMem() {
 }
 
 drawUnderlay();
+displayInstructions();

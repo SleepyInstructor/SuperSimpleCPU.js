@@ -3,6 +3,7 @@
 <head>
     <title>Test page</title>
     <meta charset="UTF-8">
+    <script src="panelManagement.js" defer></script>
     <script src="simplecomputer.js" defer></script>
     <script src="testprogram.js" defer></script>
 
@@ -11,9 +12,16 @@
 
 <body>
     <h1>Simple CPU Emulator</h1>
+    <div id="windows">
+        <form>
+            <input type="checkbox" id="sim" value="Simulator" onchange="adjustVisibility('sim','cpucontainer')" checked>Display Simulator Window
+            <input type="checkbox" id="asm" value="AssemblerWindow" onchange="adjustVisibility('asm','disassemblywindow')">Display Assembler Window
+            <input type="checkbox" id="is" value="InstructionSet" onchange="adjustVisibility('is','instructionSet')">Display InstructionSet
+        </form>
+    </div>
     <div id="cpucontainer" class="cpucontainer">
-        <canvas id="underlay" width ="600" height="400" class="canvasunderlay"></canvas>
-        <div id = "iocontainer" class="io">
+        <canvas id="underlay" width="600" height="400" class="canvasunderlay"></canvas>
+        <div id="iocontainer" class="io">
             <div>
                 <label>Input</label>
                 <input id="input" type="number">
@@ -42,22 +50,22 @@
             <label class="error" id="error"></label>
         </div>
         <div id="memory" class="memory"></div>
+
     </div>
     <div id="controls" class="controls">
         <input type="button" value="Execute Next Instruction" onclick="nextInstruction()">
         <input type="button" value="Reset Computer" onclick="resetComputer()">
         <input type="button" value="Execute Program" onclick="executeProgram()">
         <input type="button" value="Clear Memory" onclick="clearMem()">
-        <input type="button" value="Display Instruction Set" onclick="displayInstructions()">
     </div>
-    <div id="disassemblywindow">
+    <div id="disassemblywindow" style="visibility : hidden; height : 0px; width : 0px">
         <input type="button" onclick="dissassemble()" value="dissassemble">
         <input type="button" onclick="assemble()" value="assemble">
         <br>
         <textarea id="codeWindow" rows="32" cols="80"></textarea>
         <div id="log"></div>
     </div>
-    <div id="instructionSet" class="infowindow">
+    <div id="instructionSet" class="infowindow" style="visibility : hidden;">
     </div>
 
 </body>

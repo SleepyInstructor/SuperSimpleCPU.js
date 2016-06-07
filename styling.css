@@ -160,3 +160,7 @@
     animation-name: ioToAcc;
     animation-duration: 2s;
 }
+.infowindow  table, .infowindow th, .infowindow td {
+    border: 1px solid black;
+
+}
