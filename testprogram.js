@@ -98,6 +98,7 @@ var memoryBindings = {
         if (typeof(changeHightlights) !== "object") {
             changeHightlights = {};
         }
+        var dc = dissassembler().split("\n").map(function(st,num){return st.trim()});
         var activeCell = changeHightlights.hasOwnProperty("memory") ? changeHightlights.memory : -1;
         var pc = this.registers.pc;
 
@@ -106,7 +107,7 @@ var memoryBindings = {
             var animateClass = num == activeCell ? 'class="memValue touched"' : 'class="memVale"';
             var indexClass = num === pc ? 'class="memIndex pc"' : 'class="memIndex"';
             outString += '<tr><td ' + indexClass + '><label>' + num + ' </label></td>';
-            outString += '<td><label ' + animateClass + '>' + obj + '</label></td></tr>';
+            outString += '<td><label ' + animateClass + ' title="'+dc[num]+'">' + obj + '</label></td></tr>';
             return outString;
         }).join("") + '</table>';
         document.getElementById(this.memLabel).innerHTML = newTable;
@@ -123,8 +124,10 @@ function updateBindings(changeHightlights) {
 updateBindings();
 
 //Event Handlers
-
-function dissassemble() {
+function dissassemble(){
+     document.getElementById("codeWindow").value = dissassembler();
+}
+function dissassembler() {
     "use strict";
     //aliasing
     var memory = webcomputer.dumpMemory();
@@ -146,30 +149,78 @@ function dissassemble() {
             operand = twosComplementToNumber(bitString);
         }
 
-        return pnem + " " + operand;
+        return "    " + pnem + " " + operand;
     });
-    var textString = asm.join("\n");
-    document.getElementById("codeWindow").value = textString;
-
+    return asm.join("\n");
 }
 
+
 function assemble() {
+    var codeBlock = document.getElementById("codeWindow").value;
+    var output = assembler(codeBlock);
+    var asm = output[1];
+    var errorLog = output[0];
+
+    if (errorLog.length === 0) {
+        if (asm.length < 16) {
+            for (var i = asm.length; i < 16; i += 1) {
+                asm.push("0000000000000000");
+            }
+        }
+        webcomputer.uploadMemory(asm);
+    } else {
+        document.getElementById("log").innerHTML = errorLog.join("<br>");
+    }
+    updateBindings()
+}
+//Here codeblock is an array of strings
+function findSymbols(codeBlock) {
+    var symbolTable = codeBlock.reduce(function(hashTable, currentValue, currentIndex, arr) {
+        "use strict";
+        if (currentValue[0] !== ' ') {
+            var stringArray = currentValue.split(" ");
+            if (isNaN(stringArray[0])) {
+                hashTable[stringArray[0]] = currentIndex;
+            }
+        }
+        return hashTable;
+
+
+    }, {});
+    return symbolTable;
+}
+//Here codeblock is an array of strings
+function stripSymbols(codeBlock) {
+    return codeBlock.map(function(object, number) {
+        var output = object;
+        if (object[0] !== ' ') {
+            var arr = object.split(" ");
+            arr.shift();
+            output = arr.join(" ");
+
+        }
+        return output;
+    });
+}
+
+//Here codeBlock is a string
+function assembler(codeBlockString) {
     "use strict";
     //aliases
     var instructionset = webcomputer.cpu.instructionSet;
     var lookupTable = webcomputer.cpu.forwardLookupTable;
-
-    var codeBlock = document.getElementById("codeWindow").value;
+    var codeBlock = codeBlockString.split("\n")
     var errorLog = [];
-    var errorCount = 0;
-    var temp = codeBlock.trim().split("\n");
+    var symbolTable = findSymbols(codeBlock);
+    var temp = stripSymbols(codeBlock);
+
+
     var asm = temp.map(function(string, lineNum) {
         var codeArray = string.trim().split(" ");
         var opcode = codeArray[0];
         if (opcode === "dat") {
             //data
             if (codeArray.length < 2) {
-                errorCount += 1;
                 errorLog.push("Line " + lineNum + ": No operand for dat");
                 return "0000000000000000";
             } else {
@@ -181,14 +232,15 @@ function assemble() {
             if (instructionset[codeArray[0]].hasOwnProperty("encodeOperand")) {
                 if (!isNaN(codeArray[1])) {
                     operand = instructionset[codeArray[0]].encodeOperand(Number(codeArray[1]), 12);
+                } else if (symbolTable.hasOwnProperty(codeArray[1])) {
+                    operand = instructionset[codeArray[0]].encodeOperand(Number(symbolTable[codeArray[1]]), 12);
                 } else {
                     errorLog.push("Line " + lineNum + ": invalid operand");
-                    errorCount += 1;
                 }
             } else {
                 if (codeArray.length > 1) {
                     errorLog.push("Line " + lineNum + ": Unexpected operand");
-                    errorCount += 1;
+
                 }
             }
             return opcode + operand;
@@ -199,17 +251,10 @@ function assemble() {
             return "0000000000000000";
         }
     });
-    if (errorCount === 0) {
-        if (asm.length < 16) {
-            for (var i = asm.length; i < 16; i += 1) {
-                asm.push("0000000000000000");
-            }
-        }
-        webcomputer.uploadMemory(asm);
-    } else {
-        document.getElementById("log").innerHTML = errorLog.join("<br>");
-    }
-    updateBindings()
+    return [errorLog, asm];
+
+
+
 }
 
 //Event handlers
@@ -313,15 +358,18 @@ function generateIntructionHelpTable(instructionSet) {
     if (typeof(instructionSet) !== "object") {
         return "";
     }
-    function colWrap(data){ return "<td>" + data + "</td>";}
+
+    function colWrap(data) {
+        return "<td>" + data + "</td>";
+    }
 
     var instructions = Object.getOwnPropertyNames(instructionSet);
-    var rows = instructions.map(function(object, index){
-        return "<tr>"+colWrap(object)+colWrap(instructionSet[object].opcode)+
-               colWrap(instructionSet[object].description)+"</tr>";
+    var rows = instructions.map(function(object, index) {
+        return "<tr>" + colWrap(object) + colWrap(instructionSet[object].opcode) +
+            colWrap(instructionSet[object].description) + "</tr>";
     });
     var headings = "<tr><th>Mnemonic</th><th>Opcode</th><th>Description</th></tr>";
-    return "<table>"+headings+rows.join("")+"</table>";
+    return "<table>" + headings + rows.join("") + "</table>";
 
 }
 /*Helpers */

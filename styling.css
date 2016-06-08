@@ -2,6 +2,9 @@
  Will avoid variable with, until the I can make the animation system more
  flexible */
 
+.code {
+    font-family: monospace;
+}
 .cpucontainer {
     position: relative;
     width: 600px;

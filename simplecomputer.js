@@ -258,7 +258,7 @@ class CPU {
 //Fetch phase: get the instruction from memory
 //             Update the PC
 //Decode:      seperate the operand and operator
-//load:        load and data from memory to the appropriate register
+//load:        load data from memory to the appropriate register
 //exec:        Run the instruction, which can include one of
 //             1)Modifying the registers
 //             2)storing data to memory
