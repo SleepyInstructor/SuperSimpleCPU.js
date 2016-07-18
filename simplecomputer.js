@@ -44,7 +44,6 @@ function numberToBinary(number, numbits) {
     return leftPad(numbits, number.toString(2), "0");
 }
 //The CPU with the the registers and opcodes
-//
 class dataTransferObject {
     constructor(pTo, pFrom, pValue) {
         this.to = pTo;
@@ -157,7 +156,7 @@ class CPU {
             },
             "STO": {
                 opcode: "0101",
-                execute: function(operand) {
+                execute: function(operand,memory) {
                     "use strict";
                     var address = parseInt(operand, 2);
                     memory[address] = numberToTwosComplement(this.registers.acc, 16);
@@ -303,6 +302,9 @@ class computer {
         var i = 0;
         var irString = this.cpu.registers.ir;
         var found = false;
+        //Loop through the bits until a bit pattern
+        //match is found.  If none is found, then
+        //we have an illegal instruction.
         for (i = 1; i < irString.length; i += 1) {
             if (this.cpu.reverseLookupTable.hasOwnProperty(irString.substring(0, i))) {
                 this.opcode = this.cpu.reverseLookupTable[irString.substring(0, i)];
@@ -333,6 +335,9 @@ class computer {
     //Changes the content of the memory
     uploadMemory(mem) {
         this.memory = mem.slice();
+        for(var i = this.memory.length; i < 16; i += 1){
+            this.memory.push("0000000000000000");
+        }
     }
     //return a copy of the memory
     dumpMemory() {

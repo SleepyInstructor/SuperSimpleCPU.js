@@ -22,29 +22,15 @@ var webcomputer = new computer({
     }
 });
 //Initial memory
-webcomputer.uploadMemory(["0011000000000101",
-    "0001000000000010",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000",
-    "1111000000000000"
-]);
+var computerTools = new cpuTools(webcomputer);
 //Data Bindings
 //This file should be included after other files. Connects up
 //the model to view
 //Data binding
 //Should probbaly use Angular.js to do this, but I want
 //to avoid dependencies on other projects, so code-behind it is!
+
+webcomputer.uploadMemory(computerTools.assembler(programs[0].asmCode.join("\n"))[1]);
 
 function addFlashEffect(element) {
     var cleanUp = function() {
@@ -95,21 +81,26 @@ var memoryBindings = {
     memLabel: "memory",
     registers: webcomputer.cpu.registers,
     update: function(changeHightlights) {
+        var memOption = document.getElementById("binaryOption");
+        var binaryMode = memOption.checked;
+
+
         if (typeof(changeHightlights) !== "object") {
             changeHightlights = {};
         }
-        var dc = dissassembler().split("\n").map(function(st,num){return st.trim()});
+        var dc = computerTools.dissassembler().split("\n").map(function(st,num){return st.trim()});
         var activeCell = changeHightlights.hasOwnProperty("memory") ? changeHightlights.memory : -1;
         var pc = this.registers.pc;
 
         var newTable = '<table ><tr><th>Index</th><th>Value</th></tr>' + webcomputer.memory.map(function(obj, num) {
             var outString = "";
             var animateClass = num == activeCell ? 'class="memValue touched"' : 'class="memVale"';
+            var displayNumber = binaryMode ? obj : binaryToNumber(obj);
             var indexClass = num === pc ? 'class="memIndex pc"' : 'class="memIndex"';
             outString += '<tr><td ' + indexClass + '><label>' + num + ' </label></td>';
-            outString += '<td><label ' + animateClass + ' title="'+dc[num]+'">' + obj + '</label></td></tr>';
+            outString += '<td><label ' + animateClass + ' title="'+ dc[num]+'">' + displayNumber + '</label></td></tr>';
             return outString;
-        }).join("") + '</table>';
+        } ).join("") + '</table>';
         document.getElementById(this.memLabel).innerHTML = newTable;
     }
 };
@@ -124,40 +115,10 @@ function updateBindings(changeHightlights) {
 updateBindings();
 
 //Event Handlers
-function dissassemble(){
-     document.getElementById("codeWindow").value = dissassembler();
-}
-function dissassembler() {
-    "use strict";
-    //aliasing
-    var memory = webcomputer.dumpMemory();
-    var instructionset = webcomputer.cpu.instructionSet;
-    var reverseLookup = webcomputer.cpu.reverseLookupTable;
-
-
-    var asm = memory.map(function(bitString, Number) {
-        var opcode = bitString.substring(0, 4); //Assume 4 bit
-        var operandString = bitString.substring(4);
-        var pnem, operand;
-        if (reverseLookup.hasOwnProperty(opcode)) {
-            pnem = reverseLookup[opcode];
-            operand = (instructionset[pnem].decodeOperand || function() {
-                return "";
-            })(operandString);
-        } else {
-            pnem = "dat";
-            operand = twosComplementToNumber(bitString);
-        }
-
-        return "    " + pnem + " " + operand;
-    });
-    return asm.join("\n");
-}
-
 
 function assemble() {
     var codeBlock = document.getElementById("codeWindow").value;
-    var output = assembler(codeBlock);
+    var output =  computerTools.assembler(codeBlock);
     var asm = output[1];
     var errorLog = output[0];
 
@@ -171,94 +132,10 @@ function assemble() {
     } else {
         document.getElementById("log").innerHTML = errorLog.join("<br>");
     }
-    updateBindings()
-}
-//Here codeblock is an array of strings
-function findSymbols(codeBlock) {
-    var symbolTable = codeBlock.reduce(function(hashTable, currentValue, currentIndex, arr) {
-        "use strict";
-        if (currentValue[0] !== ' ') {
-            var stringArray = currentValue.split(" ");
-            if (isNaN(stringArray[0])) {
-                hashTable[stringArray[0]] = currentIndex;
-            }
-        }
-        return hashTable;
-
-
-    }, {});
-    return symbolTable;
-}
-//Here codeblock is an array of strings
-function stripSymbols(codeBlock) {
-    return codeBlock.map(function(object, number) {
-        var output = object;
-        if (object[0] !== ' ') {
-            var arr = object.split(" ");
-            arr.shift();
-            output = arr.join(" ");
-
-        }
-        return output;
-    });
-}
-
-//Here codeBlock is a string
-function assembler(codeBlockString) {
-    "use strict";
-    //aliases
-    var instructionset = webcomputer.cpu.instructionSet;
-    var lookupTable = webcomputer.cpu.forwardLookupTable;
-    var codeBlock = codeBlockString.split("\n")
-    var errorLog = [];
-    var symbolTable = findSymbols(codeBlock);
-    var temp = stripSymbols(codeBlock);
-
-
-    var asm = temp.map(function(string, lineNum) {
-        var codeArray = string.trim().split(" ");
-        var opcode = codeArray[0];
-        if (opcode === "dat") {
-            //data
-            if (codeArray.length < 2) {
-                errorLog.push("Line " + lineNum + ": No operand for dat");
-                return "0000000000000000";
-            } else {
-                return numberToTwosComplement(codeArray[1], 16);
-            }
-        } else if (instructionset.hasOwnProperty(codeArray[0])) {
-            opcode = instructionset[codeArray[0]].opcode;
-            var operand = "000000000000";
-            if (instructionset[codeArray[0]].hasOwnProperty("encodeOperand")) {
-                if (!isNaN(codeArray[1])) {
-                    operand = instructionset[codeArray[0]].encodeOperand(Number(codeArray[1]), 12);
-                } else if (symbolTable.hasOwnProperty(codeArray[1])) {
-                    operand = instructionset[codeArray[0]].encodeOperand(Number(symbolTable[codeArray[1]]), 12);
-                } else {
-                    errorLog.push("Line " + lineNum + ": invalid operand");
-                }
-            } else {
-                if (codeArray.length > 1) {
-                    errorLog.push("Line " + lineNum + ": Unexpected operand");
-
-                }
-            }
-            return opcode + operand;
-
-        } else {
-            errorCount += 1;
-            errorLog.push("Line " + lineNum + ": opcode not recognized");
-            return "0000000000000000";
-        }
-    });
-    return [errorLog, asm];
-
-
-
+    updateBindings();
 }
 
 //Event handlers
-
 function nextInstruction() {
     "use strict";
     if (webcomputer.cpu.state == webcomputer.cpu.CPUstates.stopped) {
@@ -346,12 +223,6 @@ function resetComputer() {
     updateBindings();
 }
 
-function displayInstructions() {
-    var instructionContainer = document.getElementById("instructionSet");
-    var iTable = generateIntructionHelpTable(webcomputer.cpu.instructionSet);
-    instructionContainer.innerHTML = iTable;
-
-}
 
 function generateIntructionHelpTable(instructionSet) {
 
@@ -413,5 +284,43 @@ function clearMem() {
     updateBindings();
 }
 
-drawUnderlay();
-displayInstructions();
+function updateMem(){
+    memoryBindings.update();
+}
+function populateDropDowns(){
+    var dropDown = document.getElementById("asmSelection");
+    var memDropDown = document.getElementById("memSelection");
+    var options = programs.map( function(obj,number){
+        return "<option value = '"+number+"'>"+obj.name+"</option>"
+    }).join("");
+    dropDown.innerHTML = options;
+    memDropDown.innerHTML = options;
+
+}
+function loadAsm(){
+    var selected = Number(document.getElementById("asmSelection").value);
+    var program = programs[selected];
+    document.getElementById("codeWindow").value = program.asmCode.join("\n");
+
+}
+function loadMem(){
+    var selected = Number(document.getElementById("memSelection").value);
+    var program = programs[selected];
+    var binary = computerTools.assembler(program.join("\n"));
+    //Ignore errors
+    webcomputer.uploadMemory(binary[1]);
+    updateBindings();
+
+}
+
+
+//for future refactoring.
+var helpPanelObject;
+var assemblerPanelObject;
+function setup(){
+
+    drawUnderlay();
+    helpPanelObject = new helpWrapper(webcomputer, "instructionSet");
+    assemblerPanelObject = new assemblerWrapper(webcomputer, "disassemblywindow", updateBindings);
+    populateDropDowns();
+}
