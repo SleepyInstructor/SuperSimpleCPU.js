@@ -297,12 +297,6 @@ function populateDropDowns(){
     memDropDown.innerHTML = options;
 
 }
-function loadAsm(){
-    var selected = Number(document.getElementById("asmSelection").value);
-    var program = programs[selected];
-    document.getElementById("codeWindow").value = program.asmCode.join("\n");
-
-}
 function loadMem(){
     var selected = Number(document.getElementById("memSelection").value);
     var program = programs[selected];

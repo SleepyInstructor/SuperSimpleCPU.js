@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <head>
-    <title>Test page</title>
+    <title>CPU simulator</title>
     <meta charset="UTF-8">
     <script src="cannedPrograms.js"></script>
     <script src="panelManagement.js" defer></script>
@@ -9,7 +9,7 @@
     <script src="tools.js" defer></script>
     <script src="helpPanel.js" defer></script>
     <script src="asmPanel.js" defer></script>
-    <script src="testprogram.js" defer></script>
+    <script src="mainProgram.js" defer></script>
 
     <link rel="stylesheet" type="text/css" href="styling.css">
 </head>
@@ -22,8 +22,9 @@
             <input type="checkbox" id="asm" value="AssemblerWindow" onchange="adjustVisibility('asm','disassemblywindow')">Display Assembler Window
             <input type="checkbox" id="is" value="InstructionSet" onchange="adjustVisibility('is','instructionSet')">Display InstructionSet
         </form>
-                <label>Load Program</label><select id="memSelection" onchange="loadMem()">
-        <option value="none">---None Selected---</option>
+        <label>Load Program</label>
+        <select id="memSelection" onchange="loadMem()">
+            <option value="none">---None Selected---</option>
 
         </select>
     </div>
@@ -62,7 +63,8 @@
 
             <div id="memory">
             </div>
-            <input id="binaryOption" class="option" type ="checkbox" onchange="updateMem()"><label>Binary</label>
+            <input id="binaryOption" class="option" type="checkbox" onchange="updateMem()">
+            <label>Binary</label>
         </div>
 
     </div>
@@ -75,9 +77,9 @@
     <div id="disassemblywindow" style="visibility : hidden; height : 0px; width : 0px">
         <input type="button" class="disassembleButton" value="dissassemble">
         <input type="button" class="assembleButton" value="assemble">
-        <label>Load Program</label><select id="asmSelection" onchange="loadAsm()">
-        <option value="none">---None Selected---</option>
-
+        <label>Load Program</label>
+        <select id="asmSelection">
+            <option value="none">---None Selected---</option>
         </select>
         <br>
         <textarea id="codeWindow" rows="32" cols="80" class="code"></textarea>

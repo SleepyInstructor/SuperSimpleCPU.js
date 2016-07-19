@@ -30,5 +30,11 @@ class assemblerWrapper {
             }
             updatefcn();
         });
+        var selectRef = document.getElementById("asmSelection");
+        selectRef.addEventListener("change", function() {
+            var selected = Number(document.getElementById("asmSelection").value);
+            var program = programs[selected];
+            document.getElementById("codeWindow").value = program.asmCode.join("\n");
+        });
     };
 }
